@@ -21,7 +21,7 @@ def wrap_func(fn, *args, **kwargs):
     return wrapper
 
 def run_pub(i):
-    from cilantro.utils.test.delete_this_file import Tester
+    from cilantro.utils.test.pubsub_auth import PubSubAuth
     from cilantro.protocol.overlay.interface import OverlayServer
     from cilantro.constants.testnet import TESTNET_MASTERNODES
     from cilantro.utils.lprocess import LProcess
@@ -32,11 +32,12 @@ def run_pub(i):
     overlay_proc = LProcess(target=OverlayServer, kwargs={'sk': sk})
     overlay_proc.start()
 
-    t = Tester(signing_key=sk, name='Pub')
-    t.start_pubbing(ip=os.getenv('HOST_IP'))
+    t = PubSubAuth(signing_key=sk, name='Pub')
+    t.auth_pub(ip=os.getenv('HOST_IP'))
+    t.start()
 
 def run_sub():
-    from cilantro.utils.test.delete_this_file import Tester
+    from cilantro.utils.test.pubsub_auth import PubSubAuth
     from cilantro.protocol.overlay.interface import OverlayServer, OverlayClient
     from cilantro.utils.lprocess import LProcess
     from cilantro.constants.testnet import TESTNET_DELEGATES
@@ -51,10 +52,10 @@ def run_sub():
     overlay_proc.start()
 
     def run_tester_sub(name):
-        t = Tester(signing_key=sk, name=name)
-        t.start_subbing(vk=pub1_vk)
-        t.start_subbing(vk=pub2_vk)
-        t.loop.run_forever()
+        t = PubSubAuth(signing_key=sk, name=name)
+        t.auth_sub(vk=pub1_vk)
+        t.auth_sub(vk=pub2_vk)
+        t.start()
 
     p1 = LProcess(target=run_tester_sub, kwargs={'name': 'SUB1'})
     p2 = LProcess(target=run_tester_sub, kwargs={'name': 'SUB2'})

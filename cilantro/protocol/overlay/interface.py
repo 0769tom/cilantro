@@ -14,10 +14,11 @@ CMD_URL = 'ipc://overlay-cmd-ipc-sock-{}'.format(os.getenv('HOST_IP', 'test'))
 def command(fn):
     def _command(self, *args, **kwargs):
         event_id = uuid.uuid4().hex
-        self.cmd_sock.send_multipart(
-            ['_{}'.format(fn.__name__).encode(), event_id.encode()] + \
-            [arg.encode() for arg in args] + \
-            [kwargs[k].encode() for k in kwargs])
+        cmd = ['_{}'.format(fn.__name__).encode(), event_id.encode()] + \
+                [arg.encode() for arg in args] + \
+                [kwargs[k].encode() for k in kwargs]
+        self.log.spam("client sending cmd: {}".format(cmd))
+        self.cmd_sock.send_multipart(cmd)
         return event_id
     return _command
 
