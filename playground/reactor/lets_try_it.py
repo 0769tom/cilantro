@@ -21,7 +21,7 @@ def wrap_func(fn, *args, **kwargs):
     return wrapper
 
 def run_pub(i):
-    from cilantro.utils.test.delete_this_file import Tester
+    from cilantro.utils.test.pubsub_auth import PubSubAuth
     from cilantro.protocol.overlay.interface import OverlayServer
     from cilantro.constants.testnet import TESTNET_MASTERNODES
     from cilantro.utils.lprocess import LProcess
@@ -32,11 +32,13 @@ def run_pub(i):
     overlay_proc = LProcess(target=OverlayServer, kwargs={'sk': sk})
     overlay_proc.start()
 
-    t = Tester(signing_key=sk, name='Pub')
-    t.start_pubbing(ip=os.getenv('HOST_IP'))
+    t = PubSubAuth(signing_key=sk, name='Pub')
+    # t.create_pub_auth(ip=os.getenv('HOST_IP'))
+    t.create_pub_unauth(ip=os.getenv('HOST_IP'))
+    t.start()
 
 def run_sub():
-    from cilantro.utils.test.delete_this_file import Tester
+    from cilantro.utils.test.pubsub_auth import PubSubAuth
     from cilantro.protocol.overlay.interface import OverlayServer, OverlayClient
     from cilantro.utils.lprocess import LProcess
     from cilantro.constants.testnet import TESTNET_DELEGATES
@@ -51,10 +53,12 @@ def run_sub():
     overlay_proc.start()
 
     def run_tester_sub(name):
-        t = Tester(signing_key=sk, name=name)
-        t.start_subbing(vk=pub1_vk)
-        t.start_subbing(vk=pub2_vk)
-        t.loop.run_forever()
+        t = PubSubAuth(signing_key=sk, name=name)
+        # t.create_sub_auth(vk=pub1_vk)
+        # t.create_sub_auth(vk=pub2_vk)
+        t.create_sub_unauth(vk=pub1_vk)
+        t.create_sub_unauth(vk=pub2_vk)
+        t.start()
 
     p1 = LProcess(target=run_tester_sub, kwargs={'name': 'SUB1'})
     p2 = LProcess(target=run_tester_sub, kwargs={'name': 'SUB2'})
@@ -70,8 +74,8 @@ class TestDump(BaseNetworkTestCase):
     @vmnet_test(run_webui=True)
     def test_dump(self):
         self.execute_python('node_1', wrap_func(run_pub, 0))
-        self.execute_python('node_2', wrap_func(run_pub, 1))
-        self.execute_python('node_3', run_sub)
+        # self.execute_python('node_2', wrap_func(run_pub, 1))
+        self.execute_python('node_2', run_sub)
 
         input("Enter any key to terminate")
 

@@ -24,7 +24,7 @@ def wrap_func(fn, *args, **kwargs):
     return wrapper
 
 
-class Tester:
+class PubSubAuth:
 
     def __init__(self, signing_key, name):
         self.loop = asyncio.new_event_loop()
@@ -37,35 +37,51 @@ class Tester:
 
         self.sock = None
 
-    def start_pubbing(self, ip, num_msgs=50):
+    def start(self):
+        self.loop.run_forever()
+
+    def create_pub_auth(self, ip, num_msgs=50):
         async def _start_pubbing(num):
             for i in range(num):
                 self.log.info("sending pub {}".format(i))
                 msg = [b'', 'hello #{} from {}'.format(i, os.getenv('HOST_IP')).encode()]
                 self.sock.send_multipart(msg)
+                await asyncio.sleep(1)
+
+        self.log.socket("binding pub socket")
+        self.sock = self.manager.create_socket(zmq.PUB, secure=True, domain='wonderland')
+        self.sock.bind(port=PORT, protocol=PROTOCOL, ip=ip)
+
+        asyncio.ensure_future(_start_pubbing(num_msgs))
+
+    def create_pub_unauth(self, ip, num_msgs=50):
+        async def _start_pubbing(num):
+            for i in range(num):
+                self.log.info("sending pub {}".format(i))
+                msg = [b'', 'hello #{} from {}'.format(i, os.getenv('HOST_IP')).encode()]
                 self.sock_insecure.send_multipart(msg)
                 await asyncio.sleep(1)
 
         self.log.socket("binding pub socket")
-
-        self.sock = self.manager.create_socket(zmq.PUB, secure=True, domain='wonderland')
-        self.sock.bind(port=PORT, protocol=PROTOCOL, ip=ip)
-
         self.sock_insecure = self.manager.create_socket(zmq.PUB)
         self.sock_insecure.bind(port=PORT_INSECURE, protocol=PROTOCOL, ip=ip)
 
-        self.loop.run_until_complete(_start_pubbing(num_msgs))
+        asyncio.ensure_future(_start_pubbing(num_msgs))
 
-    def start_subbing(self, vk):
+    def create_sub_auth(self, vk):
         if not self.sock:
             self.sock = self.manager.create_socket(zmq.SUB, secure=True, domain='wonderland')
             self.sock.setsockopt(zmq.SUBSCRIBE, b'')
-            self.sock_insecure = self.manager.create_socket(zmq.SUB)
-            self.sock_insecure.setsockopt(zmq.SUBSCRIBE, b'')
         self.sock.add_handler(handler_func=self.handle_pub, start_listening=True)
-        self.sock_insecure.add_handler(handler_func=self.handle_sub_insecure, start_listening=True)
         self.log.socket("connecting sub socket")
         self.sock.connect(port=PORT, protocol=PROTOCOL, vk=vk)
+
+    def create_sub_unauth(self, vk):
+        if not self.sock:
+            self.sock_insecure = self.manager.create_socket(zmq.SUB)
+            self.sock_insecure.setsockopt(zmq.SUBSCRIBE, b'')
+        self.sock_insecure.add_handler(handler_func=self.handle_sub_insecure, start_listening=True)
+        self.log.socket("connecting sub socket")
         self.sock_insecure.connect(port=PORT_INSECURE, protocol=PROTOCOL, vk=vk)
 
     def handle_pub(self, frames):

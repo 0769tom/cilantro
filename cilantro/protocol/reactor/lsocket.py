@@ -93,6 +93,9 @@ class LSocket:
                     duration_waited += RDY_WAIT_INTERVAL
                     continue
 
+                # At this point, the socket should be _ready
+                assert self.ready, "Socket must be ready to recv_multipart!"
+
                 try:
                     self.log.spam("Socket waiting for multipart msg...")
                     msg = await socket.recv_multipart()
@@ -155,8 +158,6 @@ class LSocket:
                 self.socket.curve_server = True
                 self.manager.auth.configure_curve(domain=self.domain, location=self.location)
             self.socket.bind(url)
-
-        self.log.critical('!!!')
 
         if len(self.pending_lookups) == 0:
             self.log.debugv("Pending lookups empty. Flushing commands")
